@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Circuit2Falstad 网页填入助手",
+  "version": "1.2.0",
+  "description": "在已授权的 AI 网页后台上传电路图、发送提示词，接收结果并返回本地工作台自动生成仿真。",
+  "permissions": ["scripting", "storage"],
+  "optional_host_permissions": ["https://*/*"],
+  "background": {"service_worker": "background.js"},
+  "action": {"default_popup": "popup.html"},
+  "content_scripts": [{
+    "matches": ["http://127.0.0.1/*", "http://localhost/*"],
+    "js": ["bridge.js"],
+    "run_at": "document_start"
+  }]
+}

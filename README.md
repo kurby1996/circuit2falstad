@@ -1,5 +1,7 @@
 # Circuit2Falstad — 电路图图片一键转 Falstad CircuitJS1 仿真工具
 
+**Edge 浏览器插件：** [直接加载的插件文件夹](edge-extension/) · [下载插件 ZIP](edge-extension.zip) · [安装与更新说明](Edge插件安装说明.md)
+
 将**黑板/白板手绘电路、教材插图、视频截图、EDA 原理图截图**自动识别并编译为 [Paul Falstad CircuitJS1](https://www.falstad.com/circuit/circuitjs.html) 原生仿真格式（`.circuitjs.txt` 文件与 `?ctz=` 直达仿真链接），无需手工重画即可直接在线动态仿真。
 
 ---
