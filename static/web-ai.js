@@ -56,7 +56,7 @@
       if (!getImage()) throw new Error("请先上传或粘贴电路图片。");
       const connection = await request("ping", {}, 3000);
       if (connection.disconnected) throw new Error(connection.error);
-      available = connection.ok === true && connection.automation === true;
+      available = connection.ok === true && connection.automation === true && connection.reuseTab === true;
       if (!available) {
         $("webAiInstallHelp").open = true;
         throw new Error("自动填入需要浏览器助手。请按下方步骤安装；也可使用「仅打开网页」和手动复制。 ");
@@ -187,9 +187,9 @@
     });
     request("ping").then((result) => {
       if (result.disconnected) { disconnected(result.error); return; }
-      available = result.ok === true && result.automation === true;
+      available = result.ok === true && result.automation === true && result.reuseTab === true;
       if (available) $("reconnectWebAiBtn").classList.add("hidden");
-      status(available ? "✓ 后台识图助手已连接。点击按钮后将自动发送图片、接收回复并生成仿真。" : "请更新到 1.1.0 版助手：重新下载扩展，解压覆盖后在扩展管理页点击重新加载，再刷新本页面。", available ? "success" : "warn", true);
+      status(available ? "✓ 后台识图助手已连接。任务复用同一个后台标签页，不会反复新增网页。" : "请更新到 1.2.0 版助手：重新下载扩展，解压覆盖后在扩展管理页点击重新加载，再刷新本页面。", available ? "success" : "warn", true);
     }).catch((err) => disconnected(err.message));
   }
   window.WebAiTransfer = { init, cancel };

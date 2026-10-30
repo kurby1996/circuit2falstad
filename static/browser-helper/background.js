@@ -1,17 +1,41 @@
 "use strict";
 importScripts("workflow.js");
 const WEB_JOBS = new Map();
+let helperTab = null;
+let tabQueue = Promise.resolve();
+
+function reuseBackgroundTab(url) {
+  const acquire = tabQueue.then(async () => {
+    if (chrome.storage?.session) helperTab = (await chrome.storage.session.get("webAiTab")).webAiTab || helperTab;
+    let tab;
+    if (helperTab) {
+      try {
+        const current = await chrome.tabs.get(helperTab.id);
+        // Only reuse the tab created by this helper, never an unrelated AI tab.
+        if (new URL(current.url || current.pendingUrl).origin === helperTab.origin) {
+          tab = await chrome.tabs.update(current.id, { url: url.href, active: false });
+        }
+      } catch (_) { /* Closed or moved elsewhere: create one replacement. */ }
+    }
+    if (!tab) tab = await chrome.tabs.create({ url: url.href, active: false });
+    helperTab = { id: tab.id, origin: url.origin };
+    if (chrome.storage?.session) await chrome.storage.session.set({ webAiTab: helperTab });
+    return tab;
+  });
+  tabQueue = acquire.catch(() => {});
+  return acquire;
+}
 // Only local-workbench tabs can initiate a transfer. No API config is read.
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
   let source;
   try { source = new URL(sender.url); } catch (_) { return false; }
   if (source.protocol !== "http:" || !["127.0.0.1", "localhost"].includes(source.hostname) || !sender.tab) return false;
-  if (message.action === "ping") { reply({ ok: true, version: "1.1.0", automation: true }); return false; }
+  if (message.action === "ping") { reply({ ok: true, version: "1.2.0", automation: true, reuseTab: true }); return false; }
   if (message.action === "start") {
     for (const [id, job] of WEB_JOBS) {
       if (Date.now() - job.created > 600000 && job.done) WEB_JOBS.delete(id);
-      if (job.source === sender.tab.id && !job.done) {
-        reply({ ok: false, error: "已有后台任务，请先停止或等待完成。" }); return false;
+      if (!job.done) {
+        reply({ ok: false, error: "后台 AI 标签页正在执行任务，请先停止或等待完成，避免打断当前识图。" }); return false;
       }
     }
     const id = crypto.randomUUID();
@@ -51,7 +75,7 @@ async function automate(data, job) {
   if (typeof data.imageDataUrl !== "string" || !/^data:image\/(png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(data.imageDataUrl) || data.imageDataUrl.length > 16000000) throw new Error("图片格式无效或过大。");
   if (!await chrome.permissions.contains({ origins: [url.origin + "/*"] })) throw new Error("请在扩展图标中授权 " + url.origin + " 后重试。");
   if (job.cancelled) return;
-  const tab = await chrome.tabs.create({ url: url.href, active: false });
+  const tab = await reuseBackgroundTab(url);
   job.tabId = tab.id;
   job.stage = "后台网页加载中";
   const deadline = Date.now() + 30000;
@@ -83,6 +107,7 @@ async function automate(data, job) {
 }
 
 async function transfer(data) {
+  if (Array.from(WEB_JOBS.values()).some((job) => !job.done)) throw new Error("后台 AI 标签页正在执行任务，请等待完成后再使用。");
   const url = new URL(data.url);
   if (url.protocol !== "https:" || url.username || url.password) throw new Error("仅支持 HTTPS AI 网页。");
   if (typeof data.prompt !== "string" || !data.prompt || data.prompt.length > 100000) throw new Error("提示词为空或过长。");
@@ -91,7 +116,7 @@ async function transfer(data) {
   if (!await chrome.permissions.contains({ origins: [origin] })) {
     throw new Error("请点击浏览器工具栏的「Circuit2Falstad 网页填入助手」，填写 " + url.origin + " 并授权，然后重试。");
   }
-  const tab = await chrome.tabs.create({ url: url.href, active: true });
+  const tab = await reuseBackgroundTab(url);
   // Bound wait; never replay a transfer into an unrelated redirected site.
   const deadline = Date.now() + 25000;
   let loaded = false;
