@@ -22,8 +22,8 @@
       <select id="demoSelect" class="select-box"></select>
 
       <div class="mode-switch" title="切换自动 API 识别或免 API 提示词协同模式">
-        <button id="modeApiBtn" class="mode-btn active" type="button">⚡ API 一键识别</button>
-        <button id="modePromptBtn" class="mode-btn prompt-mode-entry" type="button">🌐 免 API 网页识图</button>
+        <button id="modeApiBtn" class="mode-btn" type="button">⚡ API 一键识别</button>
+        <button id="modePromptBtn" class="mode-btn prompt-mode-entry active" type="button">🌐 免 API 网页识图</button>
       </div>
 
       <button id="openSettingsBtn" class="btn" type="button">
@@ -56,7 +56,7 @@
         </div>
 
         <!-- Mode A: Direct Vision API -->
-        <div id="apiModePanel" style="display: flex; flex-direction: column; gap: 8px;">
+        <div id="apiModePanel" class="hidden" style="display: flex; flex-direction: column; gap: 8px;">
           <div class="analyze-action-row">
             <button id="analyzeBtn" class="btn btn-primary" type="button" style="flex: 1; padding: 10px; font-size: 14px;">
               🚀 AI 识别图片并生成 Falstad 仿真电路
@@ -68,9 +68,12 @@
         </div>
 
         <!-- Mode B: Zero-API Prompt Copy & Paste -->
-        <div id="promptModePanel" class="hidden" style="display: flex; flex-direction: column; gap: 8px;">
+        <div id="promptModePanel" style="display: flex; flex-direction: column; gap: 8px;">
           <div class="web-ai-heading">🌐 用网页版 AI 识别电路图 <span>无需 API Key</span></div>
-          <p class="web-ai-description">① 选择网页并带入图片与提示词 → ② 在 AI 网页点击发送 → ③ 将回复粘贴回来生成仿真。</p>
+          <div class="web-ai-workflow-switch" role="group" aria-label="免 API 操作方式">
+            <button id="webAiAutoBtn" class="btn active" type="button" aria-pressed="true">⚡ 自动生成</button>
+            <button id="webAiManualBtn" class="btn" type="button" aria-pressed="false">✋ 手动操作</button>
+          </div>
           <label class="web-ai-label" for="webAiPreset">目标 AI 网页</label>
           <select id="webAiPreset" class="select-box">
             <option value="https://www.doubao.com/chat/">豆包</option>
@@ -82,41 +85,61 @@
           </select>
           <label class="web-ai-label" for="webAiUrl">网页地址（可修改，自动保存）</label>
           <input id="webAiUrl" class="input-box" type="url" placeholder="https://你的 AI 网页地址" />
+          <div id="webAiAutoPanel" class="web-ai-workflow-panel">
+          <p class="web-ai-description">上传图片后点击自动生成，助手会在后台发送图片和提示词、接收回复并直接出图，无需手动粘贴。请保持本工具页面打开。</p>
           <details class="web-ai-help">
             <summary>自定义网页的输入框适配</summary>
             <label for="webAiTextSelector">提示词输入框 CSS 选择器（留空自动查找）</label>
             <input id="webAiTextSelector" class="input-box" placeholder="例如 textarea 或 [contenteditable=true]" />
             <label for="webAiFileSelector">图片上传控件 CSS 选择器（留空自动查找）</label>
             <input id="webAiFileSelector" class="input-box" placeholder="例如 input[type=file]" />
+            <label for="webAiSendSelector">发送按钮 CSS 选择器（留空自动查找）</label>
+            <input id="webAiSendSelector" class="input-box" placeholder="例如 button[data-testid=send-button]" />
+            <label for="webAiResponseSelector">AI 回复区域 CSS 选择器（只选择助手回复）</label>
+            <input id="webAiResponseSelector" class="input-box" placeholder="例如 .ds-assistant-message-main-content" />
+            <label for="webAiAttachmentSelector">附件上传就绪的 CSS 选择器（默认检查新增缩略图）</label>
+            <input id="webAiAttachmentSelector" class="input-box" placeholder="选择上传完成后才出现的附件元素" />
+            <label for="webAiBusySelector">上传中 / 生成中状态 CSS 选择器（留空自动查找）</label>
+            <input id="webAiBusySelector" class="input-box" placeholder="例如 [aria-busy=true]" />
           </details>
-          <button id="openWebAiBtn" class="btn web-ai-primary" type="button">🚀 打开 AI 网页并自动填入图片＋提示词</button>
+          <button id="openWebAiBtn" class="btn web-ai-primary" type="button">🚀 一键后台识图并自动生成仿真</button>
+          <div class="web-ai-fallback">
+            <button id="stopWebAiBtn" class="btn btn-danger hidden" type="button">⏹ 停止任务</button>
+            <button id="showWebAiBtn" class="btn hidden" type="button">↗ 查看后台网页</button>
+          </div>
           <div id="webAiStatus" class="status-bar" role="status" aria-live="polite">正在检测自动填入助手…</div>
+          <button id="reconnectWebAiBtn" class="btn hidden" type="button">🔄 保留图片并重新连接</button>
           <details id="webAiInstallHelp" class="web-ai-help">
             <summary>首次使用：安装自动填入助手（Chrome / Edge）</summary>
             <ol>
               <li><a href="/static/browser-helper.zip" download>下载自动填入助手</a>，解压到固定文件夹。</li>
               <li>打开 Chrome 的 chrome://extensions 或 Edge 的 edge://extensions，开启开发者模式，选择「加载已解压的扩展程序」。</li>
               <li>选择解压后的 browser-helper 文件夹。点击扩展图标，授权你要使用的 AI 网站。</li>
-              <li>刷新本工具页面，再点击上方按钮。请先登录目标 AI 网站；填入后检查图片附件，再手动发送。</li>
+              <li>使用 1.1.0 版助手；更新后在扩展管理页点击「重新加载」，再刷新本工具。目标网站需提前登录。识图会自动发送对话并读取本次回复。</li>
             </ol>
           </details>
+          </div>
+          <div id="webAiManualPanel" class="web-ai-workflow-panel hidden">
+          <p class="web-ai-description">复制提示词，打开 AI 网页并上传图片；将 AI 的 JSON 回复粘贴回来，再点击生成仿真。手动操作无需安装浏览器助手。</p>
+          <div id="webAiManualStatus" class="status-bar hidden" role="status" aria-live="polite"></div>
           <div class="web-ai-fallback">
             <button id="copyPromptBtn" class="btn" type="button">📋 单独复制提示词</button>
             <button id="openWebOnlyBtn" class="btn" type="button">↗ 仅打开网页</button>
             <button id="downloadInputImgBtn" class="btn" type="button">↓ 下载当前图片</button>
           </div>
-          <label class="web-ai-label" for="pasteJsonInput">③ 粘贴 AI 回复，生成仿真</label>
+          <label class="web-ai-label" for="pasteJsonInput">粘贴 AI 回复</label>
           <textarea
             id="pasteJsonInput"
             class="code-area"
             style="min-height: 110px;"
-            placeholder="在此粘贴网页版 AI 返回的 JSON 内容（支持自动剥离 ```json 代码块）..."
+            placeholder="在此粘贴网页版 AI 返回的 JSON（支持自动剥离 ```json 代码块）..."
           ></textarea>
           <button id="compilePastedBtn" class="btn btn-primary" type="button">⚡ 根据 AI 回复生成仿真电路</button>
+          </div>
         </div>
 
         <div id="statusBanner" class="status-bar">
-          已加载你上传的《防反接电路》黑板手绘图示例，右侧已直接生成可运行的 Falstad 仿真电路！
+          请先上传或粘贴电路图，再点击「一键后台识图并自动生成仿真」。
         </div>
       </div>
 
@@ -148,7 +171,12 @@
 
       <!-- Simulator Viewport -->
       <div class="sim-stage">
-        <iframe id="falstadIframe" title="Falstad CircuitJS1 实时仿真"></iframe>
+        <div id="simEmptyState" class="sim-empty-state">
+          <div class="sim-empty-icon">⚡</div>
+          <strong>等待生成电路仿真</strong>
+          <span>上传电路图并点击自动生成，结果将在这里显示</span>
+        </div>
+        <iframe id="falstadIframe" class="hidden" title="Falstad CircuitJS1 实时仿真"></iframe>
         <div id="svgStage" class="svg-stage hidden"></div>
       </div>
 

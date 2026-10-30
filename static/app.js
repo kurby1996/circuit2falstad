@@ -7,7 +7,7 @@
   "use strict";
 
   const state = {
-    mode: "api", // "api" | "prompt"
+    mode: "prompt", // "api" | "prompt"
     viewMode: "live", // "live" | "svg"
     imageDataUrl: "",
     currentIr: null,
@@ -91,6 +91,7 @@
   }
 
   function showImagePreview(dataUrl) {
+    if (state.imageDataUrl !== dataUrl) window.WebAiTransfer?.cancel();
     state.imageDataUrl = dataUrl || "";
     const wrap = $("imgPreviewWrap");
     const img = $("imgPreview");
@@ -128,6 +129,9 @@
   }
 
   function applyCompiledResult(result) {
+    $("simEmptyState").classList.add("hidden");
+    $("falstadIframe").classList.toggle("hidden", state.viewMode !== "live");
+    $("svgStage").classList.toggle("hidden", state.viewMode !== "svg");
     state.currentFalstadTxt = result.circuitText;
     const compressed = window.LZString.compressToEncodedURIComponent(result.circuitText.trim());
     const url = `https://www.falstad.com/circuit/circuitjs.html?ctz=${compressed}`;
@@ -159,6 +163,9 @@
       setStatus("Falstad 仿真源码首行必须以 '$ 1 ...' 开头", "error");
       return;
     }
+    $("simEmptyState").classList.add("hidden");
+    $("falstadIframe").classList.toggle("hidden", state.viewMode !== "live");
+    $("svgStage").classList.toggle("hidden", state.viewMode !== "svg");
     state.currentFalstadTxt = clean + "\n";
     const compressed = window.LZString.compressToEncodedURIComponent(clean);
     const url = `https://www.falstad.com/circuit/circuitjs.html?ctz=${compressed}`;
@@ -581,13 +588,36 @@
   function initEvents() {
     // Populate demos
     const demoSel = $("demoSelect");
+    const noDemo = document.createElement("option");
+    noDemo.value = "";
+    noDemo.textContent = "不加载示例（上传自己的电路图）";
+    demoSel.appendChild(noDemo);
     window.PromptSchema.BUILTIN_DEMOS.forEach((d) => {
       const opt = document.createElement("option");
       opt.value = d.key;
       opt.textContent = d.name;
       demoSel.appendChild(opt);
     });
-    demoSel.addEventListener("change", () => loadDemo(demoSel.value));
+    demoSel.addEventListener("change", () => {
+      if (demoSel.value) return loadDemo(demoSel.value);
+      if (state.activeAnalysis) stopVisionAnalysis();
+      window.WebAiTransfer?.cancel();
+      showImagePreview("");
+      $("fileInput").value = "";
+      state.currentIr = null;
+      state.currentFalstadTxt = "";
+      state.currentFalstadUrl = "https://www.falstad.com/circuit/circuitjs.html";
+      $("falstadIframe").removeAttribute("src");
+      delete $("falstadIframe").dataset.loadedUrl;
+      $("falstadIframe").classList.add("hidden");
+      $("svgStage").classList.add("hidden");
+      $("svgStage").innerHTML = "";
+      $("simEmptyState").classList.remove("hidden");
+      $("compileStats").textContent = "";
+      $("pasteJsonInput").value = "";
+      $("openFalstadLink").href = state.currentFalstadUrl;
+      setStatus("请先上传或粘贴电路图，再点击「一键后台识图并自动生成仿真」。", "info");
+    });
 
     // Populate provider presets
     const provSel = $("providerSelect");
@@ -613,6 +643,7 @@
 
     // Mode toggle (API vs Prompt)
     $("modeApiBtn").addEventListener("click", () => {
+      window.WebAiTransfer?.cancel();
       state.mode = "api";
       $("modeApiBtn").classList.add("active");
       $("modePromptBtn").classList.remove("active");
@@ -620,6 +651,7 @@
       $("promptModePanel").classList.add("hidden");
     });
     $("modePromptBtn").addEventListener("click", () => {
+      if (state.activeAnalysis) stopVisionAnalysis();
       state.mode = "prompt";
       $("modePromptBtn").classList.add("active");
       $("modeApiBtn").classList.remove("active");
@@ -629,15 +661,17 @@
 
     // View toggle (Live Falstad iframe vs Local SVG)
     $("viewLiveBtn").addEventListener("click", () => {
+      state.viewMode = "live";
       $("viewLiveBtn").classList.add("active");
       $("viewSvgBtn").classList.remove("active");
-      $("falstadIframe").classList.remove("hidden");
+      $("falstadIframe").classList.toggle("hidden", !state.currentFalstadTxt);
       $("svgStage").classList.add("hidden");
     });
     $("viewSvgBtn").addEventListener("click", () => {
+      state.viewMode = "svg";
       $("viewSvgBtn").classList.add("active");
       $("viewLiveBtn").classList.remove("active");
-      $("svgStage").classList.remove("hidden");
+      $("svgStage").classList.toggle("hidden", !state.currentFalstadTxt);
       $("falstadIframe").classList.add("hidden");
     });
 
@@ -775,8 +809,20 @@
   // Boot
   window.addEventListener("DOMContentLoaded", async () => {
     initEvents();
-    window.WebAiTransfer.init({ getImage: () => state.imageDataUrl, getPrompt: () => window.PromptSchema.SYSTEM_PROMPT + "\n\n---\n\n" + window.PromptSchema.USER_PROMPT });
+    window.WebAiTransfer.init({
+      getImage: () => state.imageDataUrl,
+      restoreImage: (dataUrl) => showImagePreview(dataUrl),
+      getPrompt: () => window.PromptSchema.SYSTEM_PROMPT + "\n\n---\n\n" + window.PromptSchema.USER_PROMPT,
+      onResult: (rawText) => {
+        const parsed = extractJsonObject(rawText);
+        if (!Array.isArray(parsed.components) || !parsed.components.length) throw new Error("AI 回复中没有可编译的元件列表。");
+        const ir = window.CircuitCompiler.normalizeIr(parsed);
+        const compiled = window.CircuitCompiler.compile(ir);
+        state.currentIr = ir;
+        applyCompiledResult(compiled);
+        setStatus(`✅ 网页 AI 识别完成！已自动生成「${ir.title || "电路"}」的仿真。`, "success");
+      },
+    });
     await loadServerConfig();
-    await loadDemo("blackboard_reverse_prot");
   });
 })();

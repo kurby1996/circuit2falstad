@@ -18,7 +18,7 @@ class Input {
 const editor = new Input();
 const fileInput = { type: "file", accept: "image/*", dispatchEvent(e) { events.push("file:" + e.type); } };
 const context = vm.createContext({
-  URL, Date, setTimeout, Event, location: { origin: "https://example.com" },
+  URL, Date, setTimeout, Event, importScripts() {}, location: { origin: "https://example.com" },
   HTMLTextAreaElement: Input, HTMLInputElement: Input,
   File: class { constructor(parts, name, opts) { this.name = name; this.type = opts.type; } },
   DataTransfer: class { constructor() { this.files = []; this.items = { add: (file) => this.files.push(file) }; } },

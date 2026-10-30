@@ -569,3 +569,11 @@ button, select, input, textarea {
 .web-ai-help ol { padding-left: 20px; margin: 8px 0; }
 .web-ai-help .input-box { display: block; width: 100%; margin: 5px 0; }
 #webAiUrl { width: 100%; min-width: 0; }
+.web-ai-workflow-switch { display: flex; gap: 6px; background: #0e1528; padding: 5px; border: 1px solid #514278; border-radius: 9px; }
+.web-ai-workflow-switch .btn { flex: 1; border-color: transparent; background: transparent; padding: 10px; font-weight: 700; }
+.web-ai-workflow-switch .btn.active { background: #7c3aed; color: #fff; border-color: #a78bfa; }
+.web-ai-workflow-panel { display: flex; flex-direction: column; gap: 10px; }
+.sim-stage { position: relative; }
+.sim-empty-state { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; padding: 30px; color: #93a3c7; text-align: center; background: radial-gradient(ellipse at center, #18223d, #0b1020); }
+.sim-empty-state strong { color: #e2e8ff; font-size: 22px; }
+.sim-empty-icon { font-size: 44px; margin-bottom: 6px; }
