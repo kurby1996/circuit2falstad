@@ -171,12 +171,12 @@
 
       <!-- Simulator Viewport -->
       <div class="sim-stage">
-        <div id="simEmptyState" class="sim-empty-state">
+        <div id="simEmptyState" class="sim-empty-state hidden">
           <div class="sim-empty-icon">⚡</div>
-          <strong>等待生成电路仿真</strong>
-          <span>上传电路图并点击自动生成，结果将在这里显示</span>
+          <strong>暂无本地拓扑预览</strong>
+          <span>识别电路图后将在这里显示，或切换至 Falstad 实时仿真</span>
         </div>
-        <iframe id="falstadIframe" class="hidden" title="Falstad CircuitJS1 实时仿真"></iframe>
+        <iframe id="falstadIframe" src="https://www.falstad.com/circuit/circuitjs.html" title="Falstad CircuitJS1 实时仿真"></iframe>
         <div id="svgStage" class="svg-stage hidden"></div>
       </div>
 

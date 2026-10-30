@@ -607,12 +607,12 @@
       state.currentIr = null;
       state.currentFalstadTxt = "";
       state.currentFalstadUrl = "https://www.falstad.com/circuit/circuitjs.html";
-      $("falstadIframe").removeAttribute("src");
-      delete $("falstadIframe").dataset.loadedUrl;
-      $("falstadIframe").classList.add("hidden");
+      $("falstadIframe").src = state.currentFalstadUrl;
+      $("falstadIframe").dataset.loadedUrl = state.currentFalstadUrl;
+      $("falstadIframe").classList.toggle("hidden", state.viewMode !== "live");
       $("svgStage").classList.add("hidden");
       $("svgStage").innerHTML = "";
-      $("simEmptyState").classList.remove("hidden");
+      $("simEmptyState").classList.toggle("hidden", state.viewMode === "live");
       $("compileStats").textContent = "";
       $("pasteJsonInput").value = "";
       $("openFalstadLink").href = state.currentFalstadUrl;
@@ -664,7 +664,8 @@
       state.viewMode = "live";
       $("viewLiveBtn").classList.add("active");
       $("viewSvgBtn").classList.remove("active");
-      $("falstadIframe").classList.toggle("hidden", !state.currentFalstadTxt);
+      $("falstadIframe").classList.remove("hidden");
+      $("simEmptyState").classList.add("hidden");
       $("svgStage").classList.add("hidden");
     });
     $("viewSvgBtn").addEventListener("click", () => {
@@ -672,6 +673,7 @@
       $("viewSvgBtn").classList.add("active");
       $("viewLiveBtn").classList.remove("active");
       $("svgStage").classList.toggle("hidden", !state.currentFalstadTxt);
+      $("simEmptyState").classList.toggle("hidden", !!state.currentFalstadTxt);
       $("falstadIframe").classList.add("hidden");
     });
 
