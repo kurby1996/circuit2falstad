@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><title>授权 AI 网页</title>
+<style>
+body { width: 340px; padding: 16px; margin: 0; background: #12192e; color: #eef2ff; font: 14px/1.7 system-ui; }
+h2 { font-size: 18px; margin: 0 0 8px; } input,button { box-sizing: border-box; width: 100%; padding: 10px; margin-top: 10px; border-radius: 7px; border: 1px solid #6d5bb5; } button { background: #7c3aed; color: white; cursor: pointer; font-weight: bold; } p { margin: 8px 0; } #status { color: #c4b5fd; }
+</style>
+<h2>🌐 网页填入助手</h2>
+<p>填写工作台中配置的 AI 网页地址，授权后即可带入图片和提示词。只申请这个网站的访问权限。</p>
+<label for="url">目标 AI 网页地址</label><input id="url" type="url" placeholder="https://www.doubao.com/chat/">
+<button id="grant">授权这个网站</button>
+<p id="status" role="status">授权完成后，回到工作台刷新页面。</p>
+<script src="popup.js"></script></html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Circuit2Falstad - 电路图一键转 Falstad 在线仿真工具</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <!-- Top Navigation -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">⚡</div>
+      <div>
+        <div class="brand-title">Circuit2Falstad</div>
+        <div class="brand-sub">电路原理图 / 手绘图 → Falstad CircuitJS1 仿真直达工具</div>
+      </div>
+    </div>
+
+    <div class="topbar-controls">
+      <label style="color: var(--text-muted); font-size: 12.5px;">内置示例：</label>
+      <select id="demoSelect" class="select-box"></select>
+
+      <div class="mode-switch" title="切换自动 API 识别或免 API 提示词协同模式">
+        <button id="modeApiBtn" class="mode-btn active" type="button">⚡ API 一键识别</button>
+        <button id="modePromptBtn" class="mode-btn prompt-mode-entry" type="button">🌐 免 API 网页识图</button>
+      </div>
+
+      <button id="openSettingsBtn" class="btn" type="button">
+        <span id="apiDot" class="api-dot"></span>
+        <span id="apiStatusLabel">配置视觉模型 API</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Split Workbench -->
+  <main class="workspace">
+    <!-- Left Pane: Image Input -->
+    <section class="left-pane">
+      <!-- Image Upload & Recognition Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📷 1. 上传或粘贴电路图（支持 Ctrl+V 截图粘贴）</div>
+          <button id="clearImgBtn" class="btn btn-sm hidden" type="button">清空图片</button>
+        </div>
+
+        <div id="dropzone" class="dropzone">
+          <input id="fileInput" type="file" accept="image/*" class="hidden" />
+          <div id="dropHint" class="dropzone-hint">
+            <strong>点击选择图片</strong>、拖拽原理图到此，或直接按 <strong>Ctrl + V</strong> 粘贴截图<br />
+            <span>支持黑板粉笔手绘图、教材插图、视频截图、Altium/KiCad/立创EDA截图</span>
+          </div>
+          <div id="imgPreviewWrap" class="img-preview-wrap hidden">
+            <img id="imgPreview" alt="电路预览图" />
+          </div>
+        </div>
+
+        <!-- Mode A: Direct Vision API -->
+        <div id="apiModePanel" style="display: flex; flex-direction: column; gap: 8px;">
+          <div class="analyze-action-row">
+            <button id="analyzeBtn" class="btn btn-primary" type="button" style="flex: 1; padding: 10px; font-size: 14px;">
+              🚀 AI 识别图片并生成 Falstad 仿真电路
+            </button>
+            <button id="stopAnalyzeBtn" class="btn btn-danger hidden" type="button" title="立即终止当前正在进行的识别任务">
+              ⏹ 停止任务
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode B: Zero-API Prompt Copy & Paste -->
+        <div id="promptModePanel" class="hidden" style="display: flex; flex-direction: column; gap: 8px;">
+          <div class="web-ai-heading">🌐 用网页版 AI 识别电路图 <span>无需 API Key</span></div>
+          <p class="web-ai-description">① 选择网页并带入图片与提示词 → ② 在 AI 网页点击发送 → ③ 将回复粘贴回来生成仿真。</p>
+          <label class="web-ai-label" for="webAiPreset">目标 AI 网页</label>
+          <select id="webAiPreset" class="select-box">
+            <option value="https://www.doubao.com/chat/">豆包</option>
+            <option value="https://www.qianwen.com/">通义千问</option>
+            <option value="https://chatgpt.com/">ChatGPT</option>
+            <option value="https://www.kimi.com/">Kimi</option>
+            <option value="https://chat.deepseek.com/">DeepSeek（请确认支持图片）</option>
+            <option value="custom">自定义网页</option>
+          </select>
+          <label class="web-ai-label" for="webAiUrl">网页地址（可修改，自动保存）</label>
+          <input id="webAiUrl" class="input-box" type="url" placeholder="https://你的 AI 网页地址" />
+          <details class="web-ai-help">
+            <summary>自定义网页的输入框适配</summary>
+            <label for="webAiTextSelector">提示词输入框 CSS 选择器（留空自动查找）</label>
+            <input id="webAiTextSelector" class="input-box" placeholder="例如 textarea 或 [contenteditable=true]" />
+            <label for="webAiFileSelector">图片上传控件 CSS 选择器（留空自动查找）</label>
+            <input id="webAiFileSelector" class="input-box" placeholder="例如 input[type=file]" />
+          </details>
+          <button id="openWebAiBtn" class="btn web-ai-primary" type="button">🚀 打开 AI 网页并自动填入图片＋提示词</button>
+          <div id="webAiStatus" class="status-bar" role="status" aria-live="polite">正在检测自动填入助手…</div>
+          <details id="webAiInstallHelp" class="web-ai-help">
+            <summary>首次使用：安装自动填入助手（Chrome / Edge）</summary>
+            <ol>
+              <li><a href="/static/browser-helper.zip" download>下载自动填入助手</a>，解压到固定文件夹。</li>
+              <li>打开 Chrome 的 chrome://extensions 或 Edge 的 edge://extensions，开启开发者模式，选择「加载已解压的扩展程序」。</li>
+              <li>选择解压后的 browser-helper 文件夹。点击扩展图标，授权你要使用的 AI 网站。</li>
+              <li>刷新本工具页面，再点击上方按钮。请先登录目标 AI 网站；填入后检查图片附件，再手动发送。</li>
+            </ol>
+          </details>
+          <div class="web-ai-fallback">
+            <button id="copyPromptBtn" class="btn" type="button">📋 单独复制提示词</button>
+            <button id="openWebOnlyBtn" class="btn" type="button">↗ 仅打开网页</button>
+            <button id="downloadInputImgBtn" class="btn" type="button">↓ 下载当前图片</button>
+          </div>
+          <label class="web-ai-label" for="pasteJsonInput">③ 粘贴 AI 回复，生成仿真</label>
+          <textarea
+            id="pasteJsonInput"
+            class="code-area"
+            style="min-height: 110px;"
+            placeholder="在此粘贴网页版 AI 返回的 JSON 内容（支持自动剥离 ```json 代码块）..."
+          ></textarea>
+          <button id="compilePastedBtn" class="btn btn-primary" type="button">⚡ 根据 AI 回复生成仿真电路</button>
+        </div>
+
+        <div id="statusBanner" class="status-bar">
+          已加载你上传的《防反接电路》黑板手绘图示例，右侧已直接生成可运行的 Falstad 仿真电路！
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Right Pane: Embedded Live Falstad Simulator + Export Controls -->
+    <section class="right-pane">
+      <div class="sim-toolbar">
+        <div class="mode-switch">
+          <button id="viewLiveBtn" class="mode-btn active" type="button">🟢 Falstad 实时交互仿真</button>
+          <button id="viewSvgBtn" class="mode-btn" type="button">🗺️ 本地离线拓扑预览 (引脚校验)</button>
+        </div>
+
+        <div class="sim-actions">
+          <button id="downloadTxtBtn" class="btn btn-success" type="button" title="下载 .circuitjs.txt 文件，可在 Falstad 网站通过 File -> Open File 直接导入">
+            💾 下载仿真文件 (.circuitjs.txt)
+          </button>
+          <button id="saveServerBtn" class="btn" type="button" title="保存到本地项目的 outputs 文件夹">
+            📁 存入 outputs 目录
+          </button>
+          <button id="copyTxtBtn" class="btn" type="button" title="复制文本，可在 Falstad 中点 File -> Import From Text 粘贴">
+            📋 复制仿真文本
+          </button>
+          <a id="openFalstadLink" class="btn btn-primary" href="https://www.falstad.com/circuit/circuitjs.html" target="_blank" rel="noopener noreferrer">
+            🚀 在 Falstad 官网全屏打开 ↗
+          </a>
+        </div>
+      </div>
+
+      <!-- Simulator Viewport -->
+      <div class="sim-stage">
+        <iframe id="falstadIframe" title="Falstad CircuitJS1 实时仿真"></iframe>
+        <div id="svgStage" class="svg-stage hidden"></div>
+      </div>
+
+      <div class="sim-footer">
+        <div>
+          💡 <strong>两种免手画仿真方式</strong>：① 直接在上方内嵌窗口或点击「<strong>在 Falstad 官网全屏打开</strong>」即刻仿真；② 点击「<strong>下载仿真文件 (.circuitjs.txt)</strong>」，直接把文件拖入 Falstad 网页画布（或点菜单 <code>File → Open File...</code>）即可导入！
+        </div>
+        <div id="compileStats" style="font-family: Consolas, monospace;"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- API Settings Modal -->
+  <div id="settingsModal" class="modal-backdrop hidden">
+    <div id="settingsModalDialog" class="modal">
+      <div class="card-header">
+        <div class="card-title" style="font-size: 16px;">⚙️ 多模态视觉模型 API 配置</div>
+        <button id="closeSettingsBtn" class="btn btn-sm" type="button" title="关闭窗口">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label for="providerSelect">模型服务商预设</label>
+        <select id="providerSelect" class="select-box"></select>
+      </div>
+
+      <div class="form-group">
+        <label for="baseUrlInput">API Base URL（OpenAI 兼容接口地址或 Gemini 地址）</label>
+        <input id="baseUrlInput" class="input-box" type="text" placeholder="https://api.siliconflow.cn/v1" />
+      </div>
+
+      <div class="form-group">
+        <label for="modelInput">视觉模型名称 (Model ID，可下拉选择或手动输入)</label>
+        <input id="modelInput" class="input-box" type="text" list="modelSuggestions" placeholder="gemini-3.1-pro / sonnet-4.6 / gpt-5.2" />
+        <datalist id="modelSuggestions"></datalist>
+      </div>
+
+      <div class="form-group">
+        <label for="apiKeyInput">API Key（仅保存在你本机 `.local_config.json`，不上传任何第三方）</label>
+        <div style="display: flex; gap: 6px;">
+          <input id="apiKeyInput" class="input-box" style="flex: 1;" type="password" placeholder="sk-..." />
+          <button id="toggleApiKeyBtn" class="btn btn-sm" type="button" title="显示或隐藏密钥">👁 显示</button>
+        </div>
+      </div>
+
+      <div id="apiTestResult" class="status-bar hidden" style="word-break: break-word;"></div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button id="testApiBtn" class="btn" type="button" title="发送一张微型测试图，验证 API 地址、密钥以及模型是否支持看图">
+            🔌 测试连接与识图
+          </button>
+          <button id="stopTestApiBtn" class="btn btn-danger btn-sm hidden" type="button" title="停止测试">
+            ⏹ 停止
+          </button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="cancelSettingsBtn" class="btn" type="button">取消</button>
+          <button id="saveSettingsBtn" class="btn btn-primary" type="button">保存配置</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/lzstring.js"></script>
+  <script src="/static/prompt-schema.js"></script>
+  <script src="/static/compiler.js"></script>
+  <script src="/static/web-ai.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

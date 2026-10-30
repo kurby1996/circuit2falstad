@@ -1,0 +1,21 @@
+# Local API credentials and settings
+.local_config.json
+.env
+.env.*
+!.env.example
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Generated circuits and screenshots
+outputs/
+
+# Editor / OS metadata
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+.codebase-memory/

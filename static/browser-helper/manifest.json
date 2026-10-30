@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Circuit2Falstad 网页填入助手",
+  "version": "1.0.0",
+  "description": "将本地工作台中选定的电路图片和提示词填入用户授权的 AI 网页，发送前由用户检查。",
+  "permissions": ["scripting"],
+  "optional_host_permissions": ["https://*/*"],
+  "background": {"service_worker": "background.js"},
+  "action": {"default_popup": "popup.html"},
+  "content_scripts": [{
+    "matches": ["http://127.0.0.1/*", "http://localhost/*"],
+    "js": ["bridge.js"],
+    "run_at": "document_start"
+  }]
+}
